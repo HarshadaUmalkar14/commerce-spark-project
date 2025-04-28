@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '@/contexts/CartContext';
@@ -9,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
 import { toast } from '@/components/ui/use-toast';
+import { saveOrder } from '@/services/orderService';
 import {
   CreditCard,
   DollarSign,
@@ -21,11 +21,10 @@ import {
 const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
   const { items, totalPrice, clearCart } = useCart();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('credit-card');
   
-  // Form states
   const [formValues, setFormValues] = useState({
     firstName: '',
     lastName: '',
@@ -40,7 +39,6 @@ const CheckoutPage: React.FC = () => {
     cvv: '',
   });
 
-  // Validation states
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -50,7 +48,6 @@ const CheckoutPage: React.FC = () => {
       [name]: value
     });
     
-    // Clear error when field is edited
     if (errors[name]) {
       setErrors({
         ...errors,
@@ -62,7 +59,6 @@ const CheckoutPage: React.FC = () => {
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     
-    // Basic validation
     if (!formValues.firstName.trim()) {
       newErrors.firstName = 'First name is required';
     }
@@ -93,7 +89,6 @@ const CheckoutPage: React.FC = () => {
       newErrors.zipCode = 'ZIP code is required';
     }
     
-    // Credit card validation only if credit card payment is selected
     if (paymentMethod === 'credit-card') {
       if (!formValues.cardNumber.trim()) {
         newErrors.cardNumber = 'Card number is required';
@@ -131,20 +126,46 @@ const CheckoutPage: React.FC = () => {
     
     setIsProcessing(true);
     
-    // Simulate processing time
-    setTimeout(() => {
-      setIsProcessing(false);
+    try {
+      const orderData = {
+        customerId: user?.id,
+        items: items.map(item => ({
+          id: item.id,
+          title: item.title,
+          price: item.price,
+          quantity: item.quantity
+        })),
+        shippingAddress: {
+          firstName: formValues.firstName,
+          lastName: formValues.lastName,
+          email: formValues.email,
+          address: formValues.address,
+          city: formValues.city,
+          state: formValues.state,
+          zipCode: formValues.zipCode,
+        },
+        paymentMethod,
+        totalAmount: totalPrice + (totalPrice >= 50 ? 0 : 5) + (totalPrice * 0.08)
+      };
+
+      await saveOrder(orderData);
       
-      // Show success message
       toast({
         title: "Order placed successfully!",
         description: "Thank you for your purchase. Your order is being processed.",
       });
       
-      // Clear cart and redirect to confirmation page
       clearCart();
       navigate('/order-confirmation');
-    }, 1500);
+    } catch (error) {
+      toast({
+        title: "Error placing order",
+        description: "There was a problem processing your order. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   if (items.length === 0) {
