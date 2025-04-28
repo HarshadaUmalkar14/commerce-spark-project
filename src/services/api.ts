@@ -114,7 +114,7 @@ const mockProducts: Product[] = [
   {
     id: '7',
     title: 'Portable Bluetooth Speaker',
-    description: 'Take your music anywhere with this waterproof, portable Bluetooth speaker. Featuring 360° sound, 12 hours of playtime, and a rugged design that's perfect for outdoor adventures or pool parties.',
+    description: 'Take your music anywhere with this waterproof, portable Bluetooth speaker. Featuring 360° sound, 12 hours of playtime, and a rugged design that\'s perfect for outdoor adventures or pool parties.',
     price: 49.99,
     image: 'https://images.unsplash.com/photo-1504274066651-8d31a536b11a?q=80&w=500&h=500&auto=format&fit=crop',
     category: 'Electronics',
