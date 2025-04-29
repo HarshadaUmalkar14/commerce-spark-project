@@ -63,11 +63,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         window.location.href = '/checkout';
       }
     } catch (error: any) {
-      toast({
-        title: 'Login failed',
-        description: error.message || 'Something went wrong',
-        variant: 'destructive',
-      });
+      // Check if the error is related to email verification
+      if (error.message.includes('Email not confirmed')) {
+        toast({
+          title: 'Email not verified',
+          description: 'Please check your inbox and verify your email before logging in.',
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Login failed',
+          description: error.message || 'Something went wrong',
+          variant: 'destructive',
+        });
+      }
       throw error;
     } finally {
       setIsLoading(false);
@@ -77,7 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const register = async (name: string, email: string, password: string) => {
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.signUp({
+      const { error, data } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -89,9 +98,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) throw error;
       
+      // Check if email confirmation is required
+      if (data.user && data.user.identities && data.user.identities.length === 0) {
+        toast({
+          title: 'User already exists',
+          description: 'This email is already registered. Please log in instead.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
       toast({
         title: 'Registration successful',
-        description: 'Welcome to ShopSpark!',
+        description: data.session ? 'Welcome to ShopSpark!' : 'Please check your email for verification instructions.',
       });
     } catch (error: any) {
       toast({
