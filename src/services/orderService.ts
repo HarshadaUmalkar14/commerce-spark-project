@@ -36,7 +36,7 @@ export const saveOrder = async (orderData: Omit<Order, 'id' | 'createdAt' | 'sta
         shipping_address: orderData.shippingAddress,
         payment_method: orderData.paymentMethod,
         total_amount: orderData.totalAmount,
-        status: 'pending'
+        status: 'pending' as const
       })
       .select()
       .single();
@@ -66,7 +66,7 @@ export const saveOrder = async (orderData: Omit<Order, 'id' | 'createdAt' | 'sta
       shippingAddress: orderData.shippingAddress,
       paymentMethod: orderData.paymentMethod,
       totalAmount: orderData.totalAmount,
-      status: orderResult.status,
+      status: orderResult.status as 'pending' | 'processing' | 'completed',
       createdAt: orderResult.created_at
     };
   } catch (error) {
@@ -118,6 +118,17 @@ export const getOrders = async (): Promise<Order[]> => {
 
       if (itemsError) throw itemsError;
 
+      // Convert shipping_address from Json to the expected typed object
+      const typedShippingAddress = order.shipping_address as unknown as {
+        firstName: string;
+        lastName: string;
+        email: string;
+        address: string;
+        city: string;
+        state: string;
+        zipCode: string;
+      };
+
       orders.push({
         id: order.id,
         customerId: order.user_id,
@@ -127,10 +138,10 @@ export const getOrders = async (): Promise<Order[]> => {
           price: item.price,
           quantity: item.quantity
         })),
-        shippingAddress: order.shipping_address,
+        shippingAddress: typedShippingAddress,
         paymentMethod: order.payment_method,
         totalAmount: order.total_amount,
-        status: order.status,
+        status: order.status as 'pending' | 'processing' | 'completed',
         createdAt: order.created_at
       });
     }

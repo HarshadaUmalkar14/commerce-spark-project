@@ -25,6 +25,9 @@ const Navbar: React.FC = () => {
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };
+  
+  // Get user's name from user.user_metadata or fall back to email
+  const userName = user?.user_metadata?.name || user?.email?.split('@')[0] || 'User';
 
   return (
     <header className="bg-shop-blue text-white shadow-md sticky top-0 z-50">
@@ -76,7 +79,7 @@ const Navbar: React.FC = () => {
             {isAuthenticated ? (
               <div className="relative group">
                 <button className="flex items-center space-x-1 hover:text-shop-yellow">
-                  <span>{user?.name}</span>
+                  <span>{userName}</span>
                   <User size={20} />
                 </button>
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 hidden group-hover:block text-shop-text">
