@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -40,6 +41,20 @@ const CheckoutPage: React.FC = () => {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isAuthenticated && items.length > 0) {
+      toast({
+        title: "Login Required",
+        description: "Please sign in to complete your purchase",
+        variant: "destructive"
+      });
+      // Save cart in session storage
+      sessionStorage.setItem('pendingCart', 'true');
+      navigate('/login');
+    }
+  }, [isAuthenticated, navigate, items.length]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -124,6 +139,17 @@ const CheckoutPage: React.FC = () => {
       return;
     }
     
+    // Check authentication again before proceeding
+    if (!isAuthenticated) {
+      toast({
+        title: "Login Required",
+        description: "Please sign in to complete your purchase",
+        variant: "destructive"
+      });
+      navigate('/login');
+      return;
+    }
+    
     setIsProcessing(true);
     
     try {
@@ -158,6 +184,7 @@ const CheckoutPage: React.FC = () => {
       clearCart();
       navigate('/order-confirmation');
     } catch (error) {
+      console.error("Error saving order:", error);
       toast({
         title: "Error placing order",
         description: "There was a problem processing your order. Please try again.",
