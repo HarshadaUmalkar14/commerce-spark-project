@@ -119,7 +119,7 @@ export const getOrders = async (): Promise<Order[]> => {
       if (itemsError) throw itemsError;
 
       // Convert shipping_address from Json to the expected typed object
-      const typedShippingAddress = order.shipping_address as unknown as {
+      const typedShippingAddress = order.shipping_address as any as {
         firstName: string;
         lastName: string;
         email: string;

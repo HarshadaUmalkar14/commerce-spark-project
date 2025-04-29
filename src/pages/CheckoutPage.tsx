@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '@/contexts/CartContext';
@@ -174,7 +173,7 @@ const CheckoutPage: React.FC = () => {
         totalAmount: totalPrice + (totalPrice >= 50 ? 0 : 5) + (totalPrice * 0.08)
       };
 
-      await saveOrder(orderData);
+      const savedOrder = await saveOrder(orderData);
       
       toast({
         title: "Order placed successfully!",
@@ -182,7 +181,18 @@ const CheckoutPage: React.FC = () => {
       });
       
       clearCart();
-      navigate('/order-confirmation');
+      
+      // Navigate to confirmation page with order details
+      navigate('/order-confirmation', { 
+        state: { 
+          orderDetails: {
+            id: savedOrder.id,
+            orderNumber: savedOrder.id.substring(0, 6),
+            totalAmount: savedOrder.totalAmount,
+            items: savedOrder.items
+          } 
+        } 
+      });
     } catch (error) {
       console.error("Error saving order:", error);
       toast({

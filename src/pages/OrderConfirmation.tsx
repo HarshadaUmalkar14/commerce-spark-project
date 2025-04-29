@@ -1,25 +1,52 @@
 
-import React, { useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { CheckCircle, ShoppingBag, Box, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/contexts/CartContext';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+
+interface OrderDetails {
+  id: string;
+  orderNumber: string;
+  totalAmount: number;
+  items: {
+    id: string;
+    title: string;
+    price: number;
+    quantity: number;
+  }[];
+}
 
 const OrderConfirmation: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { items } = useCart();
+  const [orderDetails, setOrderDetails] = useState<OrderDetails | null>(null);
   
-  // Generate a random order number
-  const orderNumber = React.useMemo(() => {
-    return Math.floor(100000 + Math.random() * 900000).toString();
-  }, []);
-  
-  // Redirect if cart is not empty (which would mean this page was accessed directly)
   useEffect(() => {
-    if (items.length > 0) {
+    // Get order details from location state
+    const state = location.state as { orderDetails?: OrderDetails } | undefined;
+    
+    if (state?.orderDetails) {
+      setOrderDetails(state.orderDetails);
+    } else if (items.length > 0) {
+      // If we have items in cart but no order details, redirect to cart
       navigate('/cart');
+    } else {
+      // If we have neither order details nor items, use a placeholder
+      setOrderDetails({
+        id: '',
+        orderNumber: Math.floor(100000 + Math.random() * 900000).toString(),
+        totalAmount: 0,
+        items: []
+      });
     }
-  }, [items, navigate]);
+  }, [location, items, navigate]);
+
+  if (!orderDetails) {
+    return null; // Loading state
+  }
 
   return (
     <div className="container mx-auto px-4 py-12 max-w-2xl">
@@ -35,9 +62,19 @@ const OrderConfirmation: React.FC = () => {
           Your order has been placed and is being processed. You'll receive a confirmation email shortly.
         </p>
         
+        <Alert className="mb-6 bg-green-50 border-green-200">
+          <AlertTitle>Order #{orderDetails.orderNumber} Confirmed</AlertTitle>
+          <AlertDescription>
+            We've received your order and will begin processing it right away.
+          </AlertDescription>
+        </Alert>
+        
         <div className="bg-gray-50 rounded-lg p-4 mb-8">
           <p className="text-sm text-gray-600 mb-2">Order Number</p>
-          <p className="text-xl font-bold">{orderNumber}</p>
+          <p className="text-xl font-bold">{orderDetails.orderNumber}</p>
+          {orderDetails.totalAmount > 0 && (
+            <p className="text-md mt-2">Total: ${orderDetails.totalAmount.toFixed(2)}</p>
+          )}
         </div>
         
         <div className="space-y-6">
