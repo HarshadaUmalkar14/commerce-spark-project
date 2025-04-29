@@ -41,7 +41,7 @@ const CheckoutPage: React.FC = () => {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Redirect to login if not authenticated
+  // Redirect to login if not authenticated - using useEffect to avoid direct navigation
   useEffect(() => {
     if (!isAuthenticated && items.length > 0) {
       toast({
@@ -138,16 +138,8 @@ const CheckoutPage: React.FC = () => {
       return;
     }
     
-    // Check authentication again before proceeding
-    if (!isAuthenticated) {
-      toast({
-        title: "Login Required",
-        description: "Please sign in to complete your purchase",
-        variant: "destructive"
-      });
-      navigate('/login');
-      return;
-    }
+    // Skip the authentication check here - the useEffect will handle redirects if needed
+    // and this prevents re-checking which might be causing the loop
     
     setIsProcessing(true);
     
@@ -205,9 +197,15 @@ const CheckoutPage: React.FC = () => {
     }
   };
 
+  // Return early if cart is empty
   if (items.length === 0) {
     navigate('/cart');
     return null;
+  }
+
+  // Render only if authenticated
+  if (!isAuthenticated) {
+    return null; // Don't render anything while redirecting
   }
 
   return (
