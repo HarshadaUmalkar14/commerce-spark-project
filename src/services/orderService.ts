@@ -29,14 +29,14 @@ export interface Order {
 
 export const saveOrder = async (orderData: Omit<Order, 'id' | 'createdAt' | 'status'>): Promise<Order> => {
   try {
-    console.log("Saving order to database:", orderData);
+    console.log("Saving order to database with complete details:", orderData);
     
     if (!orderData.customerId) {
       console.warn("No customer ID provided, using localStorage fallback");
       throw new Error("User not authenticated");
     }
     
-    // Insert the order into the database
+    // Insert complete order data into the orders table
     const { data: orderResult, error: orderError } = await supabase
       .from('orders')
       .insert({
@@ -54,9 +54,9 @@ export const saveOrder = async (orderData: Omit<Order, 'id' | 'createdAt' | 'sta
       throw orderError;
     }
     
-    console.log("Order inserted successfully:", orderResult);
+    console.log("Order inserted successfully with all details:", orderResult);
 
-    // Insert each order item
+    // Insert each order item with complete details
     const orderItems = orderData.items.map(item => ({
       order_id: orderResult.id,
       product_id: item.id,
@@ -74,7 +74,7 @@ export const saveOrder = async (orderData: Omit<Order, 'id' | 'createdAt' | 'sta
       throw itemsError;
     }
     
-    console.log("Order items inserted successfully");
+    console.log("Order items inserted successfully with details:", orderItems);
 
     // Trigger confirmation email via edge function
     try {
@@ -92,13 +92,13 @@ export const saveOrder = async (orderData: Omit<Order, 'id' | 'createdAt' | 'sta
       if (emailError) {
         console.error("Error sending confirmation email:", emailError);
       } else {
-        console.log("Confirmation email sent successfully");
+        console.log("Confirmation email sent successfully with order details");
       }
     } catch (emailErr) {
       console.error("Failed to invoke email function:", emailErr);
     }
 
-    // Return the complete order object
+    // Return the complete order object with all details
     return {
       id: orderResult.id,
       customerId: orderResult.user_id,
@@ -110,7 +110,7 @@ export const saveOrder = async (orderData: Omit<Order, 'id' | 'createdAt' | 'sta
       createdAt: orderResult.created_at
     };
   } catch (error) {
-    console.error("Error saving order to Supabase:", error);
+    console.error("Error saving complete order details to Supabase:", error);
     toast({
       title: "Database error",
       description: "There was an issue saving your order to our database. We'll store it locally for now.",
@@ -125,7 +125,7 @@ export const saveOrder = async (orderData: Omit<Order, 'id' | 'createdAt' | 'sta
       createdAt: new Date().toISOString(),
     };
 
-    // Save to localStorage as fallback
+    // Save complete details to localStorage as fallback
     const storedOrders = localStorage.getItem('orders');
     const orders = storedOrders ? JSON.parse(storedOrders) : [];
     orders.push(newOrder);
@@ -137,7 +137,7 @@ export const saveOrder = async (orderData: Omit<Order, 'id' | 'createdAt' | 'sta
 
 export const getOrders = async (): Promise<Order[]> => {
   try {
-    // First try to get orders from Supabase
+    // First try to get complete order details from Supabase
     const { data: ordersData, error: ordersError } = await supabase
       .from('orders')
       .select(`
@@ -153,7 +153,7 @@ export const getOrders = async (): Promise<Order[]> => {
 
     if (ordersError) throw ordersError;
 
-    // Get order items for each order
+    // Get complete order items for each order
     const orders: Order[] = [];
     for (const order of ordersData) {
       const { data: itemsData, error: itemsError } = await supabase
@@ -191,6 +191,7 @@ export const getOrders = async (): Promise<Order[]> => {
       });
     }
 
+    console.log("Retrieved complete order details from database:", orders);
     return orders;
   } catch (error) {
     console.error("Error fetching orders from Supabase:", error);

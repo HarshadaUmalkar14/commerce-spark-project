@@ -43,6 +43,7 @@ const OrderConfirmation: React.FC = () => {
     
     if (state?.orderDetails) {
       setOrderDetails(state.orderDetails);
+      console.log("Order confirmation page received details:", state.orderDetails);
       
       // Send confirmation email
       if (state.orderDetails.shippingAddress?.email) {
@@ -76,8 +77,13 @@ const OrderConfirmation: React.FC = () => {
 
       if (error) throw error;
       
-      console.log("Email confirmation response:", data);
+      console.log("Email confirmation sent with order details:", data);
       setEmailSent(true);
+      
+      toast({
+        title: "Order confirmation sent",
+        description: `We've sent a confirmation email to ${order.shippingAddress.email}`,
+      });
     } catch (error) {
       console.error("Failed to send confirmation email:", error);
       toast({
