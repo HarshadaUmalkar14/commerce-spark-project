@@ -174,14 +174,15 @@ const CheckoutPage: React.FC = () => {
       
       clearCart();
       
-      // Navigate to confirmation page with order details
+      // Navigate to confirmation page with extended order details
       navigate('/order-confirmation', { 
         state: { 
           orderDetails: {
             id: savedOrder.id,
-            orderNumber: savedOrder.id.substring(0, 6),
+            orderNumber: savedOrder.id.substring(0, 8),
             totalAmount: savedOrder.totalAmount,
-            items: savedOrder.items
+            items: savedOrder.items,
+            shippingAddress: savedOrder.shippingAddress
           } 
         } 
       });

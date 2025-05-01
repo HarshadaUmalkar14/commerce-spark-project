@@ -1,6 +1,7 @@
 
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from '@/components/ui/use-toast';
 
 export interface Order {
   id: string;
@@ -28,6 +29,8 @@ export interface Order {
 
 export const saveOrder = async (orderData: Omit<Order, 'id' | 'createdAt' | 'status'>): Promise<Order> => {
   try {
+    console.log("Saving order to database:", orderData);
+    
     // Insert the order into the database
     const { data: orderResult, error: orderError } = await supabase
       .from('orders')
@@ -41,7 +44,12 @@ export const saveOrder = async (orderData: Omit<Order, 'id' | 'createdAt' | 'sta
       .select()
       .single();
 
-    if (orderError) throw orderError;
+    if (orderError) {
+      console.error("Error inserting order:", orderError);
+      throw orderError;
+    }
+    
+    console.log("Order inserted successfully:", orderResult);
 
     // Insert each order item
     const orderItems = orderData.items.map(item => ({
@@ -56,7 +64,12 @@ export const saveOrder = async (orderData: Omit<Order, 'id' | 'createdAt' | 'sta
       .from('order_items')
       .insert(orderItems);
 
-    if (itemsError) throw itemsError;
+    if (itemsError) {
+      console.error("Error inserting order items:", itemsError);
+      throw itemsError;
+    }
+    
+    console.log("Order items inserted successfully");
 
     // Return the complete order object
     return {
@@ -71,6 +84,11 @@ export const saveOrder = async (orderData: Omit<Order, 'id' | 'createdAt' | 'sta
     };
   } catch (error) {
     console.error("Error saving order to Supabase:", error);
+    toast({
+      title: "Database error",
+      description: "There was an issue saving your order to our database. We'll store it locally for now.",
+      variant: "destructive",
+    });
     
     // Fallback to localStorage for offline support or if user isn't authenticated
     const newOrder: Order = {
