@@ -31,6 +31,11 @@ export const saveOrder = async (orderData: Omit<Order, 'id' | 'createdAt' | 'sta
   try {
     console.log("Saving order to database:", orderData);
     
+    if (!orderData.customerId) {
+      console.warn("No customer ID provided, using localStorage fallback");
+      throw new Error("User not authenticated");
+    }
+    
     // Insert the order into the database
     const { data: orderResult, error: orderError } = await supabase
       .from('orders')
@@ -70,6 +75,28 @@ export const saveOrder = async (orderData: Omit<Order, 'id' | 'createdAt' | 'sta
     }
     
     console.log("Order items inserted successfully");
+
+    // Trigger confirmation email via edge function
+    try {
+      const { error: emailError } = await supabase.functions.invoke('send-order-confirmation', {
+        body: {
+          orderId: orderResult.id,
+          customerEmail: orderData.shippingAddress.email,
+          customerName: `${orderData.shippingAddress.firstName} ${orderData.shippingAddress.lastName}`,
+          items: orderData.items,
+          totalAmount: orderData.totalAmount,
+          shippingAddress: orderData.shippingAddress
+        }
+      });
+      
+      if (emailError) {
+        console.error("Error sending confirmation email:", emailError);
+      } else {
+        console.log("Confirmation email sent successfully");
+      }
+    } catch (emailErr) {
+      console.error("Failed to invoke email function:", emailErr);
+    }
 
     // Return the complete order object
     return {

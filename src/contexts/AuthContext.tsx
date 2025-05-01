@@ -23,12 +23,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   // Set up auth state listener
   useEffect(() => {
+    console.log("Setting up auth state listener");
+    
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         console.log("Auth state changed:", event, session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
+        
+        // Check for pending cart when auth state changes to signed_in
+        if (event === 'SIGNED_IN' && sessionStorage.getItem('pendingCart')) {
+          console.log("Found pending cart, redirecting to checkout");
+          sessionStorage.removeItem('pendingCart');
+          // Use setTimeout to avoid router conflicts
+          setTimeout(() => {
+            window.location.href = '/checkout';
+          }, 100);
+        }
       }
     );
 
@@ -46,6 +58,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
+      console.log("Attempting login for:", email);
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -53,17 +66,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) throw error;
       
+      console.log("Login successful for:", email);
       toast({
         title: 'Login successful',
         description: 'Welcome back!',
       });
       
-      // Check for pending cart
-      if (sessionStorage.getItem('pendingCart')) {
-        sessionStorage.removeItem('pendingCart');
-        // Redirect to checkout
-        window.location.href = '/checkout';
-      }
+      // Don't redirect here; it will be handled by onAuthStateChange
     } catch (error: any) {
       // Check if the error is related to email verification
       if (error.message.includes('Email not confirmed')) {

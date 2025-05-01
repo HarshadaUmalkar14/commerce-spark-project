@@ -41,8 +41,9 @@ const CheckoutPage: React.FC = () => {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Redirect to login if not authenticated - using useEffect to avoid direct navigation
+  // Redirect to login if not authenticated
   useEffect(() => {
+    console.log("CheckoutPage authentication check:", { isAuthenticated, itemsCount: items.length });
     if (!isAuthenticated && items.length > 0) {
       toast({
         title: "Login Required",
@@ -138,12 +139,23 @@ const CheckoutPage: React.FC = () => {
       return;
     }
     
-    // Skip the authentication check here - the useEffect will handle redirects if needed
-    // and this prevents re-checking which might be causing the loop
+    // Check authentication directly
+    if (!isAuthenticated) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in before completing your purchase",
+        variant: "destructive"
+      });
+      sessionStorage.setItem('pendingCart', 'true');
+      navigate('/login');
+      return;
+    }
     
     setIsProcessing(true);
     
     try {
+      console.log("Submitting order for user:", user?.id);
+      
       const orderData = {
         customerId: user?.id,
         items: items.map(item => ({
@@ -165,7 +177,9 @@ const CheckoutPage: React.FC = () => {
         totalAmount: totalPrice + (totalPrice >= 50 ? 0 : 5) + (totalPrice * 0.08)
       };
 
+      console.log("Order data being sent:", orderData);
       const savedOrder = await saveOrder(orderData);
+      console.log("Order saved successfully:", savedOrder);
       
       toast({
         title: "Order placed successfully!",
@@ -204,9 +218,22 @@ const CheckoutPage: React.FC = () => {
     return null;
   }
 
-  // Render only if authenticated
+  // Only render the checkout page if user is authenticated
   if (!isAuthenticated) {
-    return null; // Don't render anything while redirecting
+    return (
+      <div className="container mx-auto px-4 py-8 flex items-center justify-center">
+        <div className="bg-white p-8 rounded shadow-md max-w-md w-full text-center">
+          <h1 className="text-xl font-bold mb-4">Authentication Required</h1>
+          <p className="mb-4">Please sign in to complete your purchase.</p>
+          <Button 
+            onClick={() => navigate('/login')}
+            className="w-full bg-shop-blue hover:bg-shop-blue-dark"
+          >
+            Sign In
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -222,7 +249,7 @@ const CheckoutPage: React.FC = () => {
                 Shipping Information
               </h2>
               
-              <form onSubmit={handleSubmit}>
+              <form onSubmit={handleSubmit} id="checkout-form">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                   <div>
                     <Label htmlFor="firstName">First Name</Label>
@@ -519,22 +546,11 @@ const CheckoutPage: React.FC = () => {
               </div>
             </div>
             
-            {!isAuthenticated && (
-              <div className="bg-shop-blue-light text-shop-blue p-4 rounded-lg mb-6">
-                <div className="flex items-start">
-                  <User className="flex-shrink-0 mr-2" size={18} />
-                  <div>
-                    <p className="font-medium">Already have an account?</p>
-                    <p className="text-sm">Sign in for faster checkout and to save your shipping information</p>
-                  </div>
-                </div>
-              </div>
-            )}
-            
             <Button
+              form="checkout-form"
+              type="submit"
               className="w-full bg-shop-blue hover:bg-shop-blue-dark"
               size="lg"
-              onClick={() => document.forms[0].requestSubmit()}
               disabled={isProcessing}
             >
               {isProcessing ? 'Processing...' : 'Place Order'}
