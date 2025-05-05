@@ -3,20 +3,13 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Separator } from '@/components/ui/separator';
 import { toast } from '@/components/ui/use-toast';
 import { saveOrder } from '@/services/orderService';
-import {
-  CreditCard,
-  DollarSign,
-  LockKeyhole,
-  MapPin,
-  Truck
-} from 'lucide-react';
+import ShippingAddressForm from '@/components/checkout/ShippingAddressForm';
+import ShippingMethodSection from '@/components/checkout/ShippingMethodSection';
+import PaymentMethodSection from '@/components/checkout/PaymentMethodSection';
+import OrderSummary from '@/components/checkout/OrderSummary';
+import AuthWarning from '@/components/checkout/AuthWarning';
 
 const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
@@ -220,20 +213,7 @@ const CheckoutPage: React.FC = () => {
 
   // Only render the checkout page if user is authenticated
   if (!isAuthenticated) {
-    return (
-      <div className="container mx-auto px-4 py-8 flex items-center justify-center">
-        <div className="bg-white p-8 rounded shadow-md max-w-md w-full text-center">
-          <h1 className="text-xl font-bold mb-4">Authentication Required</h1>
-          <p className="mb-4">Please sign in to complete your purchase.</p>
-          <Button 
-            onClick={() => navigate('/login')}
-            className="w-full bg-shop-blue hover:bg-shop-blue-dark"
-          >
-            Sign In
-          </Button>
-        </div>
-      </div>
-    );
+    return <AuthWarning />;
   }
 
   return (
@@ -243,323 +223,31 @@ const CheckoutPage: React.FC = () => {
         
         <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
           <div className="md:col-span-3">
-            <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-              <h2 className="text-lg font-medium mb-4 flex items-center">
-                <MapPin className="mr-2 text-shop-blue" size={20} />
-                Shipping Information
-              </h2>
+            <form onSubmit={handleSubmit} id="checkout-form">
+              <ShippingAddressForm 
+                formValues={formValues} 
+                handleInputChange={handleInputChange} 
+                errors={errors} 
+              />
               
-              <form onSubmit={handleSubmit} id="checkout-form">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                  <div>
-                    <Label htmlFor="firstName">First Name</Label>
-                    <Input
-                      id="firstName"
-                      name="firstName"
-                      value={formValues.firstName}
-                      onChange={handleInputChange}
-                      placeholder="John"
-                      className={errors.firstName ? 'border-red-500' : ''}
-                    />
-                    {errors.firstName && (
-                      <p className="text-red-500 text-xs mt-1">{errors.firstName}</p>
-                    )}
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="lastName">Last Name</Label>
-                    <Input
-                      id="lastName"
-                      name="lastName"
-                      value={formValues.lastName}
-                      onChange={handleInputChange}
-                      placeholder="Doe"
-                      className={errors.lastName ? 'border-red-500' : ''}
-                    />
-                    {errors.lastName && (
-                      <p className="text-red-500 text-xs mt-1">{errors.lastName}</p>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="mb-4">
-                  <Label htmlFor="email">Email Address</Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    value={formValues.email}
-                    onChange={handleInputChange}
-                    placeholder="johndoe@example.com"
-                    className={errors.email ? 'border-red-500' : ''}
-                  />
-                  {errors.email && (
-                    <p className="text-red-500 text-xs mt-1">{errors.email}</p>
-                  )}
-                </div>
-                
-                <div className="mb-4">
-                  <Label htmlFor="address">Street Address</Label>
-                  <Input
-                    id="address"
-                    name="address"
-                    value={formValues.address}
-                    onChange={handleInputChange}
-                    placeholder="123 Main St"
-                    className={errors.address ? 'border-red-500' : ''}
-                  />
-                  {errors.address && (
-                    <p className="text-red-500 text-xs mt-1">{errors.address}</p>
-                  )}
-                </div>
-                
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  <div className="col-span-2 sm:col-span-1">
-                    <Label htmlFor="city">City</Label>
-                    <Input
-                      id="city"
-                      name="city"
-                      value={formValues.city}
-                      onChange={handleInputChange}
-                      placeholder="New York"
-                      className={errors.city ? 'border-red-500' : ''}
-                    />
-                    {errors.city && (
-                      <p className="text-red-500 text-xs mt-1">{errors.city}</p>
-                    )}
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="state">State</Label>
-                    <Input
-                      id="state"
-                      name="state"
-                      value={formValues.state}
-                      onChange={handleInputChange}
-                      placeholder="NY"
-                      className={errors.state ? 'border-red-500' : ''}
-                    />
-                    {errors.state && (
-                      <p className="text-red-500 text-xs mt-1">{errors.state}</p>
-                    )}
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="zipCode">ZIP Code</Label>
-                    <Input
-                      id="zipCode"
-                      name="zipCode"
-                      value={formValues.zipCode}
-                      onChange={handleInputChange}
-                      placeholder="10001"
-                      className={errors.zipCode ? 'border-red-500' : ''}
-                    />
-                    {errors.zipCode && (
-                      <p className="text-red-500 text-xs mt-1">{errors.zipCode}</p>
-                    )}
-                  </div>
-                </div>
-              </form>
-            </div>
-            
-            <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-              <h2 className="text-lg font-medium mb-4 flex items-center">
-                <Truck className="mr-2 text-shop-blue" size={20} />
-                Shipping Method
-              </h2>
+              <ShippingMethodSection />
               
-              <RadioGroup defaultValue="standard">
-                <div className="flex items-center justify-between border rounded-md p-4 mb-2">
-                  <div className="flex items-center">
-                    <RadioGroupItem value="standard" id="standard" />
-                    <Label htmlFor="standard" className="ml-2">Standard Shipping</Label>
-                  </div>
-                  <span>Free</span>
-                </div>
-                
-                <div className="flex items-center justify-between border rounded-md p-4">
-                  <div className="flex items-center">
-                    <RadioGroupItem value="express" id="express" />
-                    <Label htmlFor="express" className="ml-2">Express Shipping</Label>
-                  </div>
-                  <span>$15.00</span>
-                </div>
-              </RadioGroup>
-            </div>
-            
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-lg font-medium mb-4 flex items-center">
-                <CreditCard className="mr-2 text-shop-blue" size={20} />
-                Payment Method
-              </h2>
-              
-              <RadioGroup
-                value={paymentMethod}
-                onValueChange={setPaymentMethod}
-                className="mb-4"
-              >
-                <div className="flex items-center justify-between border rounded-md p-4 mb-2">
-                  <div className="flex items-center">
-                    <RadioGroupItem value="credit-card" id="credit-card" />
-                    <Label htmlFor="credit-card" className="ml-2">Credit Card</Label>
-                  </div>
-                  <div className="flex space-x-1">
-                    <div className="w-8 h-6 bg-blue-700 rounded"></div>
-                    <div className="w-8 h-6 bg-red-500 rounded"></div>
-                    <div className="w-8 h-6 bg-gray-300 rounded"></div>
-                  </div>
-                </div>
-                
-                <div className="flex items-center justify-between border rounded-md p-4">
-                  <div className="flex items-center">
-                    <RadioGroupItem value="cash" id="cash" />
-                    <Label htmlFor="cash" className="ml-2">Cash on Delivery</Label>
-                  </div>
-                  <DollarSign size={20} className="text-gray-500" />
-                </div>
-              </RadioGroup>
-              
-              {paymentMethod === 'credit-card' && (
-                <form className="space-y-4" onSubmit={handleSubmit}>
-                  <div>
-                    <Label htmlFor="cardNumber">Card Number</Label>
-                    <Input
-                      id="cardNumber"
-                      name="cardNumber"
-                      value={formValues.cardNumber}
-                      onChange={handleInputChange}
-                      placeholder="1234 5678 9012 3456"
-                      className={errors.cardNumber ? 'border-red-500' : ''}
-                    />
-                    {errors.cardNumber && (
-                      <p className="text-red-500 text-xs mt-1">{errors.cardNumber}</p>
-                    )}
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="cardName">Name on Card</Label>
-                    <Input
-                      id="cardName"
-                      name="cardName"
-                      value={formValues.cardName}
-                      onChange={handleInputChange}
-                      placeholder="John Doe"
-                      className={errors.cardName ? 'border-red-500' : ''}
-                    />
-                    {errors.cardName && (
-                      <p className="text-red-500 text-xs mt-1">{errors.cardName}</p>
-                    )}
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="expiryDate">Expiry Date</Label>
-                      <Input
-                        id="expiryDate"
-                        name="expiryDate"
-                        value={formValues.expiryDate}
-                        onChange={handleInputChange}
-                        placeholder="MM/YY"
-                        className={errors.expiryDate ? 'border-red-500' : ''}
-                      />
-                      {errors.expiryDate && (
-                        <p className="text-red-500 text-xs mt-1">{errors.expiryDate}</p>
-                      )}
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="cvv">CVV</Label>
-                      <Input
-                        id="cvv"
-                        name="cvv"
-                        value={formValues.cvv}
-                        onChange={handleInputChange}
-                        placeholder="123"
-                        className={errors.cvv ? 'border-red-500' : ''}
-                      />
-                      {errors.cvv && (
-                        <p className="text-red-500 text-xs mt-1">{errors.cvv}</p>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center text-xs text-gray-500 bg-gray-50 p-2 rounded">
-                    <LockKeyhole size={14} className="mr-1" />
-                    Your payment information is secure and encrypted
-                  </div>
-                </form>
-              )}
-            </div>
+              <PaymentMethodSection 
+                paymentMethod={paymentMethod}
+                setPaymentMethod={setPaymentMethod}
+                formValues={formValues}
+                handleInputChange={handleInputChange}
+                errors={errors}
+                handleSubmit={handleSubmit}
+              />
+            </form>
           </div>
           
-          <div className="md:col-span-2">
-            <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-              <h2 className="text-lg font-medium mb-4">Order Summary</h2>
-              
-              <div className="space-y-3">
-                {items.map((item) => (
-                  <div key={item.id} className="flex justify-between">
-                    <div className="flex items-center">
-                      <div className="w-12 h-12 rounded overflow-hidden flex-shrink-0">
-                        <img
-                          src={item.image}
-                          alt={item.title}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div className="ml-3">
-                        <p className="text-sm line-clamp-1">{item.title}</p>
-                        <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
-                      </div>
-                    </div>
-                    <span className="font-medium">${(item.price * item.quantity).toFixed(2)}</span>
-                  </div>
-                ))}
-              </div>
-              
-              <Separator className="my-4" />
-              
-              <div className="space-y-3">
-                <div className="flex justify-between text-gray-600">
-                  <span>Subtotal</span>
-                  <span>${totalPrice.toFixed(2)}</span>
-                </div>
-                
-                <div className="flex justify-between text-gray-600">
-                  <span>Shipping</span>
-                  <span>{totalPrice >= 50 ? 'Free' : '$5.00'}</span>
-                </div>
-                
-                <div className="flex justify-between text-gray-600">
-                  <span>Tax</span>
-                  <span>${(totalPrice * 0.08).toFixed(2)}</span>
-                </div>
-                
-                <Separator />
-                
-                <div className="flex justify-between font-bold text-lg">
-                  <span>Total</span>
-                  <span>
-                    ${(totalPrice + (totalPrice >= 50 ? 0 : 5) + (totalPrice * 0.08)).toFixed(2)}
-                  </span>
-                </div>
-              </div>
-            </div>
-            
-            <Button
-              form="checkout-form"
-              type="submit"
-              className="w-full bg-shop-blue hover:bg-shop-blue-dark"
-              size="lg"
-              disabled={isProcessing}
-            >
-              {isProcessing ? 'Processing...' : 'Place Order'}
-            </Button>
-            
-            <p className="text-xs text-gray-500 mt-4 text-center">
-              By placing your order, you agree to our Terms of Service and Privacy Policy
-            </p>
-          </div>
+          <OrderSummary 
+            items={items} 
+            totalPrice={totalPrice} 
+            isProcessing={isProcessing} 
+          />
         </div>
       </div>
     </div>
