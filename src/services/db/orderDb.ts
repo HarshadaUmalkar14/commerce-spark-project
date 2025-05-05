@@ -13,11 +13,12 @@ export const saveOrderToDb = async (orderData: NewOrder): Promise<Order> => {
   }
   
   // Insert order data into the orders table
+  // Convert shippingAddress to a plain object for compatibility with Supabase's Json type
   const { data: orderResult, error: orderError } = await supabase
     .from('orders')
     .insert({
       user_id: orderData.customerId,
-      shipping_address: orderData.shippingAddress,
+      shipping_address: orderData.shippingAddress as any, // Cast to any to resolve type issue
       payment_method: orderData.paymentMethod,
       total_amount: orderData.totalAmount,
       status: 'pending' as const
