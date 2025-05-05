@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { CheckCircle, ShoppingBag, Box, Truck, Mail } from 'lucide-react';
@@ -8,26 +7,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { Order, OrderItem, ShippingAddress } from '@/types/order';
 
 interface OrderDetails {
   id: string;
   orderNumber: string;
   totalAmount: number;
-  items: {
-    id: string;
-    title: string;
-    price: number;
-    quantity: number;
-  }[];
-  shippingAddress?: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    address: string;
-    city: string;
-    state: string;
-    zipCode: string;
-  };
+  items: OrderItem[];
+  shippingAddress?: ShippingAddress;
 }
 
 const OrderConfirmation: React.FC = () => {

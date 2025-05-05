@@ -1,33 +1,13 @@
 
-import { v4 as uuidv4 } from 'uuid';
-import { supabase } from "@/integrations/supabase/client";
+import { Order, NewOrder } from "@/types/order";
+import { saveOrderToDb, saveOrderToLocalStorage, fetchOrdersFromDb, fetchOrdersFromLocalStorage } from "@/services/db/orderDb";
+import { sendOrderConfirmationEmail } from "@/services/notifications/emailService";
 import { toast } from '@/components/ui/use-toast';
 
-export interface Order {
-  id: string;
-  customerId?: string;
-  items: {
-    id: string;
-    title: string;
-    price: number;
-    quantity: number;
-  }[];
-  shippingAddress: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    address: string;
-    city: string;
-    state: string;
-    zipCode: string;
-  };
-  paymentMethod: string;
-  totalAmount: number;
-  status: 'pending' | 'processing' | 'completed';
-  createdAt: string;
-}
-
-export const saveOrder = async (orderData: Omit<Order, 'id' | 'createdAt' | 'status'>): Promise<Order> => {
+/**
+ * Save an order, attempt database first, fall back to local storage
+ */
+export const saveOrder = async (orderData: NewOrder): Promise<Order> => {
   try {
     console.log("Saving order to database with complete details:", orderData);
     
@@ -36,79 +16,18 @@ export const saveOrder = async (orderData: Omit<Order, 'id' | 'createdAt' | 'sta
       throw new Error("User not authenticated");
     }
     
-    // Insert complete order data into the orders table
-    const { data: orderResult, error: orderError } = await supabase
-      .from('orders')
-      .insert({
-        user_id: orderData.customerId,
-        shipping_address: orderData.shippingAddress,
-        payment_method: orderData.paymentMethod,
-        total_amount: orderData.totalAmount,
-        status: 'pending' as const
-      })
-      .select()
-      .single();
+    // Attempt to save to database
+    const savedOrder = await saveOrderToDb(orderData);
 
-    if (orderError) {
-      console.error("Error inserting order:", orderError);
-      throw orderError;
-    }
-    
-    console.log("Order inserted successfully with all details:", orderResult);
-
-    // Insert each order item with complete details
-    const orderItems = orderData.items.map(item => ({
-      order_id: orderResult.id,
-      product_id: item.id,
-      title: item.title,
-      price: item.price,
-      quantity: item.quantity
-    }));
-
-    const { error: itemsError } = await supabase
-      .from('order_items')
-      .insert(orderItems);
-
-    if (itemsError) {
-      console.error("Error inserting order items:", itemsError);
-      throw itemsError;
-    }
-    
-    console.log("Order items inserted successfully with details:", orderItems);
-
-    // Trigger confirmation email via edge function
+    // After successful save, send confirmation email
     try {
-      const { error: emailError } = await supabase.functions.invoke('send-order-confirmation', {
-        body: {
-          orderId: orderResult.id,
-          customerEmail: orderData.shippingAddress.email,
-          customerName: `${orderData.shippingAddress.firstName} ${orderData.shippingAddress.lastName}`,
-          items: orderData.items,
-          totalAmount: orderData.totalAmount,
-          shippingAddress: orderData.shippingAddress
-        }
-      });
-      
-      if (emailError) {
-        console.error("Error sending confirmation email:", emailError);
-      } else {
-        console.log("Confirmation email sent successfully with order details");
-      }
+      await sendOrderConfirmationEmail(savedOrder);
     } catch (emailErr) {
-      console.error("Failed to invoke email function:", emailErr);
+      console.error("Failed to send confirmation email, but order was saved:", emailErr);
     }
 
-    // Return the complete order object with all details
-    return {
-      id: orderResult.id,
-      customerId: orderResult.user_id,
-      items: orderData.items,
-      shippingAddress: orderData.shippingAddress,
-      paymentMethod: orderData.paymentMethod,
-      totalAmount: orderData.totalAmount,
-      status: orderResult.status as 'pending' | 'processing' | 'completed',
-      createdAt: orderResult.created_at
-    };
+    return savedOrder;
+    
   } catch (error) {
     console.error("Error saving complete order details to Supabase:", error);
     toast({
@@ -117,87 +36,22 @@ export const saveOrder = async (orderData: Omit<Order, 'id' | 'createdAt' | 'sta
       variant: "destructive",
     });
     
-    // Fallback to localStorage for offline support or if user isn't authenticated
-    const newOrder: Order = {
-      ...orderData,
-      id: uuidv4(),
-      status: 'pending',
-      createdAt: new Date().toISOString(),
-    };
-
-    // Save complete details to localStorage as fallback
-    const storedOrders = localStorage.getItem('orders');
-    const orders = storedOrders ? JSON.parse(storedOrders) : [];
-    orders.push(newOrder);
-    localStorage.setItem('orders', JSON.stringify(orders));
-    
-    return newOrder;
+    // Fallback to localStorage
+    return saveOrderToLocalStorage(orderData);
   }
 };
 
+/**
+ * Get all orders, attempt database first, fall back to local storage
+ */
 export const getOrders = async (): Promise<Order[]> => {
   try {
     // First try to get complete order details from Supabase
-    const { data: ordersData, error: ordersError } = await supabase
-      .from('orders')
-      .select(`
-        id,
-        user_id,
-        shipping_address,
-        payment_method,
-        total_amount,
-        status,
-        created_at
-      `)
-      .order('created_at', { ascending: false });
-
-    if (ordersError) throw ordersError;
-
-    // Get complete order items for each order
-    const orders: Order[] = [];
-    for (const order of ordersData) {
-      const { data: itemsData, error: itemsError } = await supabase
-        .from('order_items')
-        .select('*')
-        .eq('order_id', order.id);
-
-      if (itemsError) throw itemsError;
-
-      // Convert shipping_address from Json to the expected typed object
-      const typedShippingAddress = order.shipping_address as any as {
-        firstName: string;
-        lastName: string;
-        email: string;
-        address: string;
-        city: string;
-        state: string;
-        zipCode: string;
-      };
-
-      orders.push({
-        id: order.id,
-        customerId: order.user_id,
-        items: itemsData.map(item => ({
-          id: item.product_id,
-          title: item.title,
-          price: item.price,
-          quantity: item.quantity
-        })),
-        shippingAddress: typedShippingAddress,
-        paymentMethod: order.payment_method,
-        totalAmount: order.total_amount,
-        status: order.status as 'pending' | 'processing' | 'completed',
-        createdAt: order.created_at
-      });
-    }
-
-    console.log("Retrieved complete order details from database:", orders);
-    return orders;
+    return await fetchOrdersFromDb();
   } catch (error) {
     console.error("Error fetching orders from Supabase:", error);
     
     // Fallback to localStorage
-    const storedOrders = localStorage.getItem('orders');
-    return storedOrders ? JSON.parse(storedOrders) : [];
+    return fetchOrdersFromLocalStorage();
   }
 };

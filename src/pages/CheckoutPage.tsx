@@ -1,10 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/components/ui/use-toast';
 import { saveOrder } from '@/services/orderService';
+import { NewOrder } from '@/types/order';
 import ShippingAddressForm from '@/components/checkout/ShippingAddressForm';
 import ShippingMethodSection from '@/components/checkout/ShippingMethodSection';
 import PaymentMethodSection from '@/components/checkout/PaymentMethodSection';
@@ -149,7 +149,7 @@ const CheckoutPage: React.FC = () => {
     try {
       console.log("Submitting order for user:", user?.id);
       
-      const orderData = {
+      const orderData: NewOrder = {
         customerId: user?.id,
         items: items.map(item => ({
           id: item.id,
